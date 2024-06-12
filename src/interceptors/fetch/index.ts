@@ -14,13 +14,29 @@ import { uuidv4 } from '../../utils/uuid'
 
 const debug = require('debug')('fetch')
 
+function canParseUrl(url: string): boolean {
+  try {
+    new URL(url)
+    return true
+  } catch (_error) {
+    return false
+  }
+}
+
 export const interceptFetch: Interceptor = (observer, resolver) => {
   const pureFetch = window.fetch
 
   debug('replacing "window.fetch"...')
 
   window.fetch = async (input, init) => {
-    const ref = new Request(input, init)
+    const resolvedInput =
+      typeof input === 'string' &&
+      typeof location !== 'undefined' &&
+      !canParseUrl(input)
+        ? new URL(input, location.origin)
+        : input
+
+    const ref = new Request(resolvedInput, init)
     const url = typeof input === 'string' ? input : input.url
     const method = init?.method || 'GET'
 
